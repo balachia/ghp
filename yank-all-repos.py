@@ -67,9 +67,13 @@ def main():
         # parse next link
         link = page.headers['link']
         matches = LINKRE.findall(link)
-        next_link = [x for (x,y) in matches if y == 'next'][0]
-        if not next_link:
-            raise ValueError('No next link: ' + link)
+        try:
+            next_link = [x for (x,y) in matches if y == 'next'][0]
+        except IndexError as err:
+            logging.error('No next link')
+            raise
+        #if not next_link:
+            #raise ValueError('No next link: ' + link)
 
         # write state
         with open(STATE_FILE, mode='w') as fout:
