@@ -1,4 +1,5 @@
-import json
+#import json
+import ujson as json
 import codecs
 import sys
 from collections import defaultdict
@@ -12,22 +13,35 @@ OWNERKEEPKEYS = [
         'url','login','type','id','site_admin','gravatar_id'
     ]
 
+#@profile
 def measure_key_usage(maxfile = 1000, report = True):
     keydict = defaultdict(int)
     ownerkeydict = defaultdict(int)
 
+    keys = []
+    okeys = []
     for i in range(maxfile):
         with codecs.open(
                 expanduser('~/Data/github/all-repos/%0.8d.json' % i),
                 mode='r',
                 encoding='utf8') as fin:
-            jsonlist = json.loads(fin.read())
+            text = fin.read()
+            jsonlist = json.loads(text)
+            #jsonlist = json.loads(fin.read())
 
         for jsonitem in jsonlist:
-            for key in jsonitem.keys():
-                keydict[key] = keydict[key] + 1
-            for key in jsonitem['owner'].keys():
-                ownerkeydict[key] = ownerkeydict[key] + 1
+            newkeys = jsonitem.keys()
+            newokeys = jsonitem['owner'].keys()
+            if keys != newkeys:
+                keys = newkeys
+                print "Key break:\n%s" % keys
+            if okeys != newokeys:
+                okeys = newokeys
+                print "Owner key break:\n%s" % okeys
+            #for key in jsonitem.keys():
+                #keydict[key] = keydict[key] + 1
+            #for key in jsonitem['owner'].keys():
+                #ownerkeydict[key] = ownerkeydict[key] + 1
 
         if (i+1) % 500 == 0:
             print (i+1)
@@ -77,7 +91,7 @@ def strip_json(maxfile = 1000, outfile = None):
 
 def main():
     # first measure key usage
-    maxfile = 50000
+    maxfile = 177895
     #(keydict,ownerkeydict) = measure_key_usage(maxfile, report=True)
 
     strip_json(maxfile=maxfile,
