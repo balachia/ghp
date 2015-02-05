@@ -8,13 +8,7 @@ from time import sleep, time, ctime, timezone
 
 #logging.basicConfig(filename='yank-repo-issues.log',level=logging.INFO)
 
-STATE_FILE = expanduser('~/Data/github/yank-repo-issues.state')
-REPO_FILE = expanduser('~/Data/github/processed_user_samples.json')
-
-LINKRE = re.compile(r'(?:<(.*?)>; rel="(.*?)")+')
-LINKBASE = 'https://api.github.com/users/%s/repos?per_page=100'
-
-PAYLOAD = {'state':'all'}
+_LINKRE = re.compile(r'(?:<(.*?)>; rel="(.*?)")+')
 
 def get_page(link, token, bad_request_max=0):
     """
@@ -33,22 +27,23 @@ def get_page(link, token, bad_request_max=0):
         try:
             page = requests.get(link,
                     auth=(token,''))
-            need_request = False
+
+            # issues
+            if not page.ok:
+                bad_request_count += 1
+                #need_request = True
+                logging.error('Bad request %d (%d): <%s>',
+                        bad_request_count,
+                        page.status_code,
+                        link)
+            else:
+                need_request = False
+                logging.info('(%d): <%s>', page.status_code, link)
         except requests.ConnectionError as err:
             logging.error('Connection error at <%s>: %s',
                     link,
                     err)
             print 'Retry on:\n%s' % str(err)
-
-        # issues
-        if not page.ok:
-            bad_request_count += 1
-            need_request = True
-            logging.error('Bad request %d (%d): <%s>',
-                    page.status_code,
-                    link)
-        else:
-            logging.info('(%d): <%s>', page.status_code, link)
 
     return page
 
@@ -58,7 +53,7 @@ def next_page(page):
     """
     if 'link' in page.headers:
         link = page.headers['link']
-        matches = LINKRE.findall(link)
+        matches = _LINKRE.findall(link)
         try:
             next_link = [x for (x, y) in matches if y == 'next'][0]
         except IndexError:
