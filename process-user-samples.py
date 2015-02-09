@@ -30,6 +30,7 @@ def measure_key_usage(maxfile = 1000, report = True):
                 expanduser('~/Data/github/user-repos/%0.8d.json' % i),
                 mode='r',
                 encoding='utf8') as fin:
+            ownername = fin.readline()
             for line in fin:
                 jsonitem = json.loads(line)
 
@@ -72,6 +73,7 @@ def strip_json(maxfile = 1000, outfile = None):
                 expanduser('~/Data/github/user-repos/%0.8d.json' % i),
                 mode='r',
                 encoding='utf8') as fin:
+            ownername = fin.readline()
             for line in fin:
                 jsonitem = json.loads(line)
 
@@ -100,6 +102,6 @@ def main(umax=1000):
 
 
 if __name__=="__main__":
-    main(umax=15000)
+    main(umax=100000)
 
 
