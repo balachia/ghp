@@ -155,7 +155,7 @@ if __name__=="__main__":
     logging.basicConfig(filename='yank-user-samples.log',
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             level=logging.INFO)
-    main(umax=50000)
+    main(umax=100000)
     logging.shutdown()
 
 

@@ -34,7 +34,7 @@ if __name__=="__main__":
     logging.basicConfig(filename='yank-issue-comments.log',
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             level=logging.INFO)
-    main(umax=50000)
+    main(umax=85872)
     logging.shutdown()
 
 
