@@ -166,7 +166,7 @@ if __name__=="__main__":
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             level=logging.INFO)
 
-    main(umax=435792)
+    main(umax=5519456)
 
     logging.shutdown()
 

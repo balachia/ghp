@@ -1,3 +1,6 @@
+# yank all repos for a given owner, reading from global owner list
+
+
 import ujson as json
 #import requests
 #import re
@@ -155,7 +158,7 @@ if __name__=="__main__":
     logging.basicConfig(filename='yank-user-samples.log',
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             level=logging.INFO)
-    main(umax=100000)
+    main(umax=1500000)
     logging.shutdown()
 
 
