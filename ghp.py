@@ -11,7 +11,9 @@ from os import makedirs
 from time import sleep, time, ctime, timezone
 from math import floor
 from Queue import Queue, Empty
-from threading import Thread
+from threading import Thread, Event
+from operator import itemgetter
+from itertools import groupby
 #import Queue as basequeue
 #from multiprocessing import Process, Queue
 
@@ -105,11 +107,12 @@ def rate_limit_pause(token):
                 logging.error('Timeout at rate limiter (%s): %s',
                         token[0:5], err)
         rate_limit = int(page.headers['x-ratelimit-remaining'])
+        rate_total = int(page.headers['x-ratelimit-limit'])
         rate_reset = int(page.headers['x-ratelimit-reset'])
         wait_time = rate_reset - int(time())
         if rate_limit == 0:
             print "Rate limited, reset %s, sleeping %d" % (ctime(rate_reset), wait_time)
-            logging.info("Rate limited (%s), reset %s, sleeping %d", token[0:5], ctime(rate_reset), wait_time)
+            logging.info("Rate limited (%s) (%d total), reset %s, sleeping %d", token[0:5], rate_total, ctime(rate_reset), wait_time)
             sleep(wait_time + 1)
 
 def get_item(item, token):
@@ -165,7 +168,25 @@ def write_item(itemjsons, outfile, mode='w'):
 def estimate_size(itemjsons):
     return sum([sys.getsizeof(json.dumps(x)) for x in itemjsons])
 
-def itemload_process(itemqueue, item_file, skip, itemmax, item_func, trace=1000):
+def derange(data, reverse=True):
+    groupfn = lambda (i,x): i+x if reverse else lambda(i,x): i-x
+    res = '['
+    first = True
+    for k, g in groupby(enumerate(data), groupfn):
+        if not first:
+            res += ','
+        else:
+            first = False
+        group = map(itemgetter(1), g)
+        if len(group) == 1:
+            res += '%s' % group[0]
+        else:
+            res += '%s..%s' % (group[0],group[-1])
+    res += ']'
+    return res
+
+def itemload_process(itemqueue, item_file, skip, itemmax, item_func, flag, trace=1000):
+    logging.info('Item process started')
     with open(item_file, mode='r') as fin:
         counter = 1
         for line in fin:
@@ -174,6 +195,7 @@ def itemload_process(itemqueue, item_file, skip, itemmax, item_func, trace=1000)
                 counter += 1
                 if counter > skip:
                     print 'done skipping'
+                    flag.set()
                 continue
 
             # break at sampling limit
@@ -188,6 +210,7 @@ def itemload_process(itemqueue, item_file, skip, itemmax, item_func, trace=1000)
 
 
 def yank_process(itemqueue, writequeue, token):
+    logging.info('Yank process started (%s)', token[0:5])
     rate_limit_pause(token)
 
     has_queued = True
@@ -275,7 +298,7 @@ def state_process(donequeue, statefile, minimum=0):
         logging.info('State process retrieved %d', counter)
         if waitingline:
             logging.info('State process waiting line (min %d): %s',
-                    minseen, waitingline)
+                    minseen, derange(waitingline))
         
         # resort the waitingline
         waitingline.append(counter)
@@ -334,6 +357,7 @@ def yank_driver(item_file,
                 skip = int(text[0]) - 1
                 print 'skipping %d' % skip
 
+    itemflag = Event()
     itemqueue = Queue(maxsize = len(tokens) * 5000)
     writequeue = Queue()
     donequeue = Queue()
@@ -363,11 +387,14 @@ def yank_driver(item_file,
                 'item_file': item_file,
                 'skip':skip,
                 'itemmax':itemmax,
-                'item_func':item_func})
+                'item_func':item_func,
+                'flag':itemflag})
     itemproc.daemon = True
     itemproc.start()
 
     # let the thing load for a little bit
+    # TODO: cleaner way of telling yankers to know when to go
+    itemflag.wait(300)
     sleep(1)
 
     #stateproc = Process(target=state_process,
